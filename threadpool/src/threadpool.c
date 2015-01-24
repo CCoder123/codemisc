@@ -2,7 +2,7 @@
  * @file threadpool.c
  * @brief Threadpool implementation file
  */
-
+#include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -46,11 +46,11 @@ struct threadpool_t {
   pthread_mutex_t lock;
   pthread_cond_t notify;
   
-  pthread_t *threads;
   int thread_count;
+  pthread_t *threads;
   
-  threadpool_task_t *queue;
   int queue_size;
+  threadpool_task_t *queue;
   int head;
   int tail;
   int count;
@@ -231,6 +231,73 @@ int threadpool_free(threadpool_t *pool)
 	return 0;
 }
 
+int threadpool_queue_size(threadpool_t *pool)
+{
+    if(pool == NULL)  return threadpool_invalid;
+
+    if(pthread_mutex_lock(&(pool->lock)) != 0) {
+        return threadpool_lock_failure;
+    }
+	
+	int err = 0;
+	int queue_size = 0;
+	do{
+		/* Already shutting down */
+		if(pool->shutdown){ 
+			err = threadpool_shutdown;
+			break;
+		}
+
+		queue_size = pool->count;
+	}while(0);
+
+	if(pthread_mutex_unlock(&pool->lock) != 0)
+	{
+		return threadpool_lock_failure;
+	}
+
+	if(err != 0) {
+		return err;
+	}
+	
+	return queue_size;
+}
+
+void threadpool_status(threadpool_t *pool)
+{
+    if(pool == NULL) { 
+        fprintf(stderr, "%s %d %s threadpool is not valid\n", __FILE__, __LINE__, __FUNCTION__);
+		return;
+	}
+
+    if(pthread_mutex_lock(&(pool->lock)) != 0) {
+        fprintf(stderr, "%s %d %s threadpool lock failure\n", __FILE__, __LINE__, __FUNCTION__);
+		return;
+    }
+	
+	/* Already shutting down */
+	if(pool->shutdown){ 
+		fprintf(stderr, "%s %d %s threadpool shutdown\n", __FILE__, __LINE__, __FUNCTION__);
+		if(pthread_mutex_unlock(&pool->lock) != 0)
+		{
+			fprintf(stderr, "%s %d %s threadpool unlock failure\n", __FILE__, __LINE__, __FUNCTION__);
+			return;
+		}
+		return;
+	}
+	
+	fprintf(stderr, "==============threadpool status============\n");
+	fprintf(stderr, "threadpool thread count:%d\n", pool->thread_count);
+	fprintf(stderr, "threadpool task cap:%d\n", pool->queue_size);
+	fprintf(stderr, "threadpool task count:%d\n", pool->count);
+	fprintf(stderr, "============================================\n");
+	
+	if(pthread_mutex_unlock(&pool->lock) != 0)
+	{
+        fprintf(stderr, "%s %d %s threadpool unlock failure\n", __FILE__, __LINE__, __FUNCTION__);
+		return;
+	}
+}
 
 static void *threadpool_thread(void *threadpool)
 {
@@ -267,7 +334,8 @@ static void *threadpool_thread(void *threadpool)
         /* Get to work */
         (*(task.function))(task.argument);
     }
-
+	
+	fprintf(stderr, "thread :%u terminated\n", pthread_self());
     pool->started--;
 
     pthread_mutex_unlock(&(pool->lock));

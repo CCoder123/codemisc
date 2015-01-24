@@ -82,4 +82,9 @@ int threadpool_add(threadpool_t *pool, void (*routine)(void *), void *arg, int f
  */
 int threadpool_destroy(threadpool_t *pool, int flags);
 
+
+int threadpool_queue_size(threadpool_t *pool);
+
+void threadpool_status(threadpool_t *pool);
+
 #endif /* _THREADPOOL_H_ */
