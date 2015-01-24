@@ -1,0 +1,13 @@
+CFLAGS = -g
+INCLUDES = 
+CLIBS = -lpthread 
+
+CC = gcc
+BIN = server
+SRC = $(wildcard *.c)
+
+all:
+	$(CC) $(SRC) $(CFLAGS) $(INCLUDES) $(CLIBS) -o $(BIN)
+
+clean:
+	rm *.o $(BIN) -rf
