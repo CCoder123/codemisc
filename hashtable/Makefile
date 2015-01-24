@@ -19,7 +19,7 @@ hashtable-static-lib: $(SRCDIR)/hashtable.h $(SRCDIR)/hashtable.c $(SRCDIR)/murm
 
 hashtable-test: $(SRCDIR)/main.c hashtable-lib
 	$(CC) $(SRCDIR)/main.c $(LFLAGS) $(CFLAGS) -o hashtable-test
-	./hashtable-test
+	#./hashtable-test
 
 docs:
 	doxygen doxygen-hashtable.conf

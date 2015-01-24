@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "util.h"
 #include "hashfunc.h"
 
 /// The initial size of the hash table.
@@ -42,6 +43,9 @@ typedef struct hash_table {
 
     /// A count of the number of hash collisions.
     unsigned int collisions;
+	
+	/// lock for multithread
+	int lock;
 
     /// Any flags that have been set. (See the ht_flags enum).
     int flags;
@@ -166,7 +170,8 @@ void ht_set_seed(uint32_t seed);
 
 
 //============================================================================
-//**************Define new API name for hashtable ******************************
+//************** Define new API name for hashtable *******************************
+//************** Define _MULTI_THREAD to support multi-thread ********************
 //============================================================================
 void hashtable_init(hash_table *table, ht_flags flags, double max_load_factor
 #ifndef __WITH_MURMUR
@@ -183,57 +188,89 @@ void hashtable_init(hash_table *table, ht_flags flags, double max_load_factor
 
 void hashtable_destroy(hash_table *table)
 {
+	LOCK(table);
 	ht_destroy(table);
+	UNLOCK(table);
 }
 
 void hashtable_insert(hash_table *table, void *key, size_t key_size, void *value, size_t value_size)
 {
+	LOCK(table);
 	ht_insert(table, key, key_size, value, value_size);
+	UNLOCK(table);
 }
 
 void hashtable_insert_he(hash_table *table, hash_entry *entry)
 {
+	LOCK(table);
 	ht_insert_he(table, entry);
+	UNLOCK(table);
 }
 
 void* hashtable_get(hash_table *table, void *key, size_t key_size, size_t *value_size)
 {
-	return ht_get(table, key, key_size, value_size);
+	LOCK(table);
+	void *value = ht_get(table, key, key_size, value_size);
+	UNLOCK(table);
+
+	return value;
 }
 
 void hashtable_remove(hash_table *table, void *key, size_t key_size)
 {
+	LOCK(table);
 	ht_remove(table, key, key_size);
+	UNLOCK(table);
 }
 
 int hashtable_contains(hash_table *table, void *key, size_t key_size)
 {
-	return ht_contains(table, key, key_size);
+	LOCK(table);
+	int iRet = ht_contains(table, key, key_size);
+	UNLOCK(table);
+
+	return iRet;
 }
 
 unsigned int hashtable_size(hash_table *table)
 {
-	return ht_size(table);
+	LOCK(table);
+	unsigned int _size = ht_size(table);
+	UNLOCK(table);
+
+	return _size;
 }
 
 void** hashtable_keys(hash_table *table, unsigned int *key_count)
 {
-	return ht_keys(table, key_count);
+	LOCK(table);
+	void ** keys =  ht_keys(table, key_count);
+	UNLOCK(table);
+
+	return keys;
 }
 
 void hashtable_clear(hash_table *table)
 {
+	LOCK(table);
 	ht_clear(table);
+	UNLOCK(table);
 }
 
 unsigned int hashtable_index(hash_table *table, void *key, size_t key_size)
 {
-	return ht_index(table, key, key_size);
+	LOCK(table);
+	unsigned int index = ht_index(table, key, key_size);
+	UNLOCK(table);
+
+	return index;
 }
 
 void hashtable_resize(hash_table *table, unsigned int new_size)
 {
+	LOCK(table);
 	ht_resize(table, new_size);
+	UNLOCK(table);
 }
 
 void hashtable_set_seed(uint32_t seed)

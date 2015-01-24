@@ -128,17 +128,17 @@ int main(int argc, char *argv[])
     test(ok_flag == 1, "Result was %d", ok_flag);
     ht_clear(&ht);
     ht_resize(&ht, 4194304);
-    t1 = snap_time();
-
+    
+	t1 = snap_time();
     for(i = 0; i < key_count; i++)
     {
         ht_insert(&ht, &(many_keys[i]), sizeof(many_keys[i]), &(many_values[i]), sizeof(many_values[i]));
     }
 
     t2 = snap_time();
-
     fprintf(stderr, "Inserting %d keys (on preallocated table) took %.2f seconds\n", key_count, get_elapsed(t1, t2));
-    for(i = 0; i < key_count; i++)
+    
+	for(i = 0; i < key_count; i++)
     {
         ht_remove(&ht, &(many_keys[i]), sizeof(many_keys[i]));
     }

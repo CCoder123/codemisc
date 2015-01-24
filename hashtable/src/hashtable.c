@@ -109,6 +109,7 @@ void ht_init(hash_table *table, ht_flags flags, double max_load_factor
 
     table->key_count            = 0;
     table->collisions           = 0;
+	table->lock                 = 0;
     table->flags                = flags;
     table->max_load_factor      = max_load_factor;
     table->current_load_factor  = 0.0;
@@ -124,47 +125,50 @@ void ht_init(hash_table *table, ht_flags flags, double max_load_factor
 
 void ht_destroy(hash_table *table)
 {
-    unsigned int i;
+	unsigned int i;
     hash_entry *entry;
     hash_entry *tmp;
-
+	
     if(table->array == NULL) {
         debug("ht_destroy got a bad table\n");
     }
 
     // crawl the entries and delete them
-    for(i = 0; i < table->array_size; i++) {
+    for(i = 0; i < table->array_size; i++) 
+	{
         entry = table->array[i];
-
-        while(entry != NULL) {
+        while(entry != NULL) 
+		{
             tmp = entry->next;
             he_destroy(table->flags, entry);
             entry = tmp;
         }
     }
-
-    table->hashfunc_x86_32 = NULL;
+	
+    table->hashfunc_x86_32  = NULL;
     table->hashfunc_x86_128 = NULL;
     table->hashfunc_x64_128 = NULL;
     table->array_size = 0;
-    table->key_count = 0;
+    table->key_count  = 0;
     table->collisions = 0;
+
     free(table->array);
     table->array = NULL;
+
+	/// Don't clear flags; see ht_clear function
+	//table->flags      = 0;
 }
 
-void ht_insert(hash_table *table, void *key, size_t key_size, void *value,
-        size_t value_size)
+void ht_insert(hash_table *table, void *key, size_t key_size, void *value, size_t value_size)
 {
-    hash_entry *entry = he_create(table->flags, key, key_size, value,
-            value_size);
-
+	hash_entry *entry = he_create(table->flags, key, key_size, value, value_size);
     ht_insert_he(table, entry);
 }
 
 // this was separated out of the regular ht_insert
 // for ease of copying hash entries around
-void ht_insert_he(hash_table *table, hash_entry *entry){
+void ht_insert_he(hash_table *table, hash_entry *entry)
+{
     hash_entry *tmp;
     unsigned int index;
 
@@ -185,10 +189,8 @@ void ht_insert_he(hash_table *table, hash_entry *entry){
     // the value)
     while(tmp->next != NULL)
     {
-        if(he_key_compare(tmp, entry))
-            break;
-        else
-            tmp = tmp->next;
+        if(he_key_compare(tmp, entry)) break;
+        else tmp = tmp->next;
     }
 
     if(he_key_compare(tmp, entry))
@@ -198,22 +200,22 @@ void ht_insert_he(hash_table *table, hash_entry *entry){
         he_set_value(table->flags, tmp, entry->value, entry->value_size);
         he_destroy(table->flags, entry);
     }
-    else
-    {
-        // else tack the new entry onto the end of the chain
-        tmp->next = entry;
-        table->collisions += 1;
-        table->key_count ++;
-        table->current_load_factor = (double)table->collisions / table->array_size;
+	else
+	{
+		// else tack the new entry onto the end of the chain
+		tmp->next = entry;
+		table->collisions += 1;
+		table->key_count ++;
+		table->current_load_factor = (double)table->collisions / table->array_size;
 
-        // double the size of the table if autoresize is on and the
-        // load factor has gone too high
-        if(!(table->flags & HT_NO_AUTORESIZE) &&
-                (table->current_load_factor > table->max_load_factor)) {
-            ht_resize(table, table->array_size * 2);
-            table->current_load_factor =
-                (double)table->collisions / table->array_size;
-        }
+		// double the size of the table if autoresize is on and the
+		// load factor has gone too high
+		if(!(table->flags & HT_NO_AUTORESIZE) &&
+				(table->current_load_factor > table->max_load_factor)) {
+			ht_resize(table, table->array_size * 2);
+			table->current_load_factor =
+				(double)table->collisions / table->array_size;
+		}
     }
 }
 
