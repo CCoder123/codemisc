@@ -52,12 +52,10 @@ typedef struct hash_table {
 
     /// The current load factor.
     double current_load_factor;
-
 } hash_table;
 
 /// Hashtable initialization flags (passed to ht_init)
 typedef enum {
-
     /// No options set
     HT_NONE = 0,
 
@@ -70,7 +68,6 @@ typedef enum {
     /// Don't automatically resize hashtable when the load factor
     /// goes above the trigger value
     HT_NO_AUTORESIZE = 4
-
 } ht_flags;
 
 //----------------------------------
@@ -166,6 +163,83 @@ void ht_resize(hash_table *table, unsigned int new_size);
 /// @brief Sets the global security seed to be used in hash function.
 /// @param seed The seed to use.
 void ht_set_seed(uint32_t seed);
+
+
+//============================================================================
+//**************Define new API name for hashtable ******************************
+//============================================================================
+void hashtable_init(hash_table *table, ht_flags flags, double max_load_factor
+#ifndef __WITH_MURMUR
+        , HashFunc *for_x86_32, HashFunc *for_x86_128, HashFunc *for_x64_128
+#endif //__WITH_MURMUR
+        )
+{
+#ifndef __WITH_MURMUR
+	ht_init(table, flags, max_load_factor , for_x86_32, for_x86_128, for_x64_128);
+#else
+	ht_init(table, flags, max_load_factor);
+#endif
+}
+
+void hashtable_destroy(hash_table *table)
+{
+	ht_destroy(table);
+}
+
+void hashtable_insert(hash_table *table, void *key, size_t key_size, void *value, size_t value_size)
+{
+	ht_insert(table, key, key_size, value, value_size);
+}
+
+void hashtable_insert_he(hash_table *table, hash_entry *entry)
+{
+	ht_insert_he(table, entry);
+}
+
+void* hashtable_get(hash_table *table, void *key, size_t key_size, size_t *value_size)
+{
+	return ht_get(table, key, key_size, value_size);
+}
+
+void hashtable_remove(hash_table *table, void *key, size_t key_size)
+{
+	ht_remove(table, key, key_size);
+}
+
+int hashtable_contains(hash_table *table, void *key, size_t key_size)
+{
+	return ht_contains(table, key, key_size);
+}
+
+unsigned int hashtable_size(hash_table *table)
+{
+	return ht_size(table);
+}
+
+void** hashtable_keys(hash_table *table, unsigned int *key_count)
+{
+	return ht_keys(table, key_count);
+}
+
+void hashtable_clear(hash_table *table)
+{
+	ht_clear(table);
+}
+
+unsigned int hashtable_index(hash_table *table, void *key, size_t key_size)
+{
+	return ht_index(table, key, key_size);
+}
+
+void hashtable_resize(hash_table *table, unsigned int new_size)
+{
+	ht_resize(table, new_size);
+}
+
+void hashtable_set_seed(uint32_t seed)
+{
+	ht_set_seed(seed);
+}
 
 #endif
 
