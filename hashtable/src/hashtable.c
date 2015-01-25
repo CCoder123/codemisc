@@ -82,11 +82,11 @@ static void he_set_value(int flags, hash_entry *entry, void *value, size_t value
 // HashTable functions
 //-----------------------------------
 
-void ht_init(hash_table *table, ht_flags flags, double max_load_factor
 #ifndef __WITH_MURMUR
-        , HashFunc *for_x86_32, HashFunc *for_x86_128, HashFunc *for_x64_128
-#endif //__WITH_MURMUR
-        )
+void ht_init(hash_table *table, ht_flags flags, double max_load_factor , HashFunc *for_x86_32, HashFunc *for_x86_128, HashFunc *for_x64_128)
+#else
+void ht_init(hash_table *table, ht_flags flags, double max_load_factor) 
+#endif
 {
 #ifdef __WITH_MURMUR
     table->hashfunc_x86_32  = MurmurHash3_x86_32;
@@ -364,6 +364,12 @@ void ht_clear(hash_table *table)
 unsigned int ht_index(hash_table *table, void *key, size_t key_size)
 {
     uint32_t index;
+	if(table->hashfunc_x86_32 == NULL)
+	{
+		printf("hash function is null\n");
+		return -1;
+	}
+
     // 32 bits of murmur seems to fare pretty well
     table->hashfunc_x86_32(key, key_size, global_seed, &index);
     index %= table->array_size;
@@ -421,6 +427,126 @@ void ht_resize(hash_table *table, unsigned int new_size)
 void ht_set_seed(uint32_t seed){
     global_seed = seed;
 }
+
+
+//============================================================================
+//************** Define new API name for hashtable *******************************
+//************** Define _MULTI_THREAD to support multi-thread ********************
+//============================================================================
+/*
+void hashtable_init(hash_table *table, ht_flags flags, double max_load_factor
+#ifndef __WITH_MURMUR
+        , HashFunc *for_x86_32, HashFunc *for_x86_128, HashFunc *for_x64_128
+#endif //__WITH_MURMUR
+        )
+*/
+#ifndef __WITH_MURMUR
+void hashtable_init(hash_table *table, ht_flags flags, double max_load_factor , HashFunc *for_x86_32, HashFunc *for_x86_128, HashFunc *for_x64_128)
+#else
+void hashtable_init(hash_table *table, ht_flags flags, double max_load_factor)
+#endif //__WITH_MURMUR
+{
+#ifndef __WITH_MURMUR
+	ht_init(table, flags, max_load_factor , for_x86_32, for_x86_128, for_x64_128);
+#else
+	ht_init(table, flags, max_load_factor);
+#endif
+}
+
+void hashtable_destroy(hash_table *table)
+{
+	LOCK(table);
+	ht_destroy(table);
+	UNLOCK(table);
+}
+
+void hashtable_insert(hash_table *table, void *key, size_t key_size, void *value, size_t value_size)
+{
+	LOCK(table);
+	ht_insert(table, key, key_size, value, value_size);
+	UNLOCK(table);
+}
+
+void hashtable_insert_he(hash_table *table, hash_entry *entry)
+{
+	LOCK(table);
+	ht_insert_he(table, entry);
+	UNLOCK(table);
+}
+
+void* hashtable_get(hash_table *table, void *key, size_t key_size, size_t *value_size)
+{
+	LOCK(table);
+	void *value = ht_get(table, key, key_size, value_size);
+	UNLOCK(table);
+
+	return value;
+}
+
+void hashtable_remove(hash_table *table, void *key, size_t key_size)
+{
+	LOCK(table);
+	ht_remove(table, key, key_size);
+	UNLOCK(table);
+}
+
+int hashtable_contains(hash_table *table, void *key, size_t key_size)
+{
+	LOCK(table);
+	int iRet = ht_contains(table, key, key_size);
+	UNLOCK(table);
+
+	return iRet;
+}
+
+unsigned int hashtable_size(hash_table *table)
+{
+	LOCK(table);
+	unsigned int _size = ht_size(table);
+	UNLOCK(table);
+
+	return _size;
+}
+
+void** hashtable_keys(hash_table *table, unsigned int *key_count)
+{
+	LOCK(table);
+	void ** keys =  ht_keys(table, key_count);
+	UNLOCK(table);
+
+	return keys;
+}
+
+void hashtable_clear(hash_table *table)
+{
+	LOCK(table);
+	ht_clear(table);
+	UNLOCK(table);
+}
+
+unsigned int hashtable_index(hash_table *table, void *key, size_t key_size)
+{
+	LOCK(table);
+	unsigned int index = ht_index(table, key, key_size);
+	UNLOCK(table);
+
+	return index;
+}
+
+void hashtable_resize(hash_table *table, unsigned int new_size)
+{
+	LOCK(table);
+	ht_resize(table, new_size);
+	UNLOCK(table);
+}
+
+void hashtable_set_seed(uint32_t seed)
+{
+	ht_set_seed(seed);
+}
+
+
+
 
 //---------------------------------
 // hash_entry functions
