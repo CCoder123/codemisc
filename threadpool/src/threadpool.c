@@ -9,6 +9,8 @@
 
 #include "threadpool.h"
 
+#define MAX_NAME_LEN 25
+
 typedef enum {
     immediate_shutdown = 1,
     graceful_shutdown  = 2
@@ -23,9 +25,22 @@ typedef enum {
  */
 
 typedef struct {
-    void (*function)(void *);
-    void *argument;
+	void (*function)(void *);
+	void *argument;
 } threadpool_task_t;
+
+typedef struct thread_task_t
+{
+	void (*function)(void *);
+	void *argument;
+}thread_task;
+
+typedef struct thread_t{
+	pthread_t tid;
+	char thread_name[MAX_NAME_LEN];
+	thread_task *task_queue;
+}thread;
+
 
 /**
  *  @struct threadpool
@@ -48,6 +63,8 @@ struct threadpool_t {
   
   int thread_count;
   pthread_t *threads;
+
+  thread *_threads;
   
   int queue_size;
   threadpool_task_t *queue;
