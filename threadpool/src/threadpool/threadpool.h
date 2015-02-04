@@ -40,7 +40,7 @@ threadpool_t *threadpool_create(int thread_count, int queue_size, int flags);
  * @return 0 if all goes well, negative values in case of error (@see
  * threadpool_error_t for codes).
  */
-int threadpool_add(threadpool_t *pool, void (*routine)(void *), void *arg, int flags);
+int threadpool_add_task(threadpool_t *pool, void (*routine)(void *), void *arg, int flags);
 
 /**
  * @function threadpool_destroy
@@ -53,7 +53,6 @@ int threadpool_add(threadpool_t *pool, void (*routine)(void *), void *arg, int f
  * processes all pending tasks before shutdown.
  */
 int threadpool_destroy(threadpool_t *pool, int flags);
-
 
 int threadpool_queue_size(threadpool_t *pool);
 
